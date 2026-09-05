@@ -6,41 +6,41 @@ Built for the Razorpay Buildathon 2026, Track 3.
 
 ## 🔄 RecoverAI Recovery Workflow
 
-RecoverAI follows a controlled revenue recovery loop:
-
 **Detect → Diagnose → Decide → Validate → Intervene → Verify → Audit**
 
 ```mermaid
 flowchart TD
-    A["Payment Failure Event"] --> B["Transaction + Customer Data"]
+    A[Payment Failed] --> B[Capture Payment Data]
 
-    B --> C["AI Diagnosis"]
+    B --> C[AI Failure Diagnosis]
 
-    C --> D{"Failure Type"}
+    C --> D{Failure Category}
 
-    D -->|"Retryable"| E["Recovery Decision"]
-    D -->|"Customer Action"| E
-    D -->|"Fraud / Risk"| F["Block / Escalate"]
+    D -->|Retryable| E[Recommend Retry]
+    D -->|Customer Action| F[Recommend Customer Notification]
+    D -->|Fraud Risk| G[Block and Escalate]
 
-    E --> G["Deterministic Policy Gates"]
+    E --> H[Deterministic Policy Gates]
+    F --> H
 
-    G -->|"Approved"| H["Recovery Intervention"]
-    G -->|"Blocked"| F
+    H -->|Approved| I[Execute Recovery Action]
+    H -->|Blocked| G
 
-    H --> I["Outcome Tracking"]
+    I --> J[Track Outcome]
 
-    I -->|"Recovered"| J["Revenue Recovered"]
-    I -->|"Pending / Failed"| K["Fallback / Review"]
+    J -->|Recovered| K[Revenue Recovered]
+    J -->|Pending or Failed| L[Fallback or Review]
 
-    C --> L["AI Recovery Assistant"]
-    E --> L
-    I --> L
+    K --> M[Audit Trail]
+    L --> M
+    G --> M
 
-    J --> M["Audit Trail"]
-    K --> M
-    F --> M
+    M --> N[RecoverAI Control Center]
 
-    M --> N["RecoverAI Control Center"]
+    C --> O[AI Recovery Assistant]
+    H --> O
+    J --> O
+```
 
 ## What It Does
 
