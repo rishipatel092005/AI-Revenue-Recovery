@@ -42,28 +42,63 @@ flowchart TD
     J --> O
 ```
 
-## What It Does
+## 📁 Project Structure
 
-- Analyzes failed payments and their failure reasons
-- Selects `auto_retry`, `whatsapp`, `voice_call`, or manual review
-- Blocks fraud-risk contact and enforces a three-contact cap
-- Defers voice actions outside the 9:00-21:00 calling window
-- Simulates retry, WhatsApp, and voice actions safely by default
-- Maintains an append-only audit trail
-- Provides a Streamlit control center with queue, decisions, customers, health, and Copilot views
+```text
+AI-Revenue-Recovery/
+│
+├── recovery/                         # Core revenue-recovery logic
+│   ├── decision_engine.py            # Determines the recommended recovery action
+│   ├── stopping_rules.py             # Safety limits and escalation rules
+│   ├── auto_retry_executor.py        # Controlled payment-retry execution
+│   └── outcome_tracker.py            # Tracks intervention and recovery outcomes
+│
+├── channels/                         # Recovery communication channels
+│   ├── whatsapp_notifier.py          # WhatsApp notification workflow
+│   └── voice_caller.py               # Voice escalation workflow
+│
+├── tests/                            # Automated tests
+│   └── test_agent.py                 # Recovery engine and safety-rule tests
+│
+├── data/                             # Synthetic demo dataset
+│   ├── customers.csv                 # Customer records
+│   └── transactions.csv              # Failed-payment records
+│
+├── design-system/                    # UI design system and visual guidelines
+│   └── revenue-recovery-agent/
+│       └── MASTER.md
+│
+├── dashboard.py                      # Streamlit application and dashboard
+├── run_pipeline.py                   # Runs the recovery pipeline
+├── db.py                             # Supabase database access layer
+├── config.py                         # Environment and application configuration
+│
+├── generate_synthetic_data.py        # Generates demo customers and transactions
+├── setup_database.py                 # Creates database tables and views
+├── reset_demo.py                     # Resets the demo environment
+│
+├── schema.sql                        # Supabase database schema
+│
+├── .env.example                      # Example environment configuration
+├── requirements.txt                  # Python dependencies
+├── README.md                         # Project documentation
+├── DESIGN.md                         # UI/UX notes
+└── LICENSE                           # MIT License
+```
+## 🛠️ Tech Stack
 
-The bundled dataset contains 30 synthetic customers and 120 synthetic failed transactions. All contact data is synthetic or masked.
+| Category | Technology |
+|---|---|
+| **Frontend** | Streamlit |
+| **Backend** | Python |
+| **Database** | Supabase PostgreSQL |
+| **Recovery Engine** | Python Decision Engine |
+| **Safety & Guardrails** | Deterministic Policy & Stopping Rules |
+| **Communication** | Twilio WhatsApp Sandbox |
+| **Testing** | Pytest |
+| **Data** | Synthetic Payment Dataset |
 
-## Safety First
 
-`DRY_RUN=true` is the default and recommended demo configuration. In this mode:
-
-- No WhatsApp message is sent
-- No voice call is placed
-- No real payment is retried
-- Provider actions are composed or simulated and written to `audit_log`
-
-Razorpay credentials are not required for the current demo. The payment-link and gateway integrations are intentionally simulated.
 
 ## Requirements
 
@@ -142,23 +177,29 @@ The current CSVs contain 30 customers and 120 transactions. To replace existing 
 
 Open [http://localhost:8501](http://localhost:8501).
 
-## Frontend Pages
+## 🖥️ Product Overview
 
-- **Overview**: KPIs, recovery funnel, revenue exposure, failure breakdown, and recent activity
-- **Revenue at Risk**: ranked failed payments and exposure
-- **Recovery Queue**: filters, selected-payment detail, policy gate, and recovery timeline
-- **AI Decisions**: transparent rule-based decisions without hidden chain-of-thought
-- **AI Recovery Assistant**: evidence-grounded answers from current Supabase records
-- **Transactions**: complete transaction view
-- **Customers**: customer exposure and recovery state
-- **Audit Trail**: chronological decision and outcome evidence
-- **System Health**: database, recovery engine, simulator, and safety status
+### 1. Detect Revenue Leakage
+Identify failed payments and quantify revenue currently at risk.
+
+### 2. Diagnose the Failure
+Classify the failure and determine whether it is retryable, requires customer action, or should be blocked/escalated.
+
+### 3. Decide the Recovery Strategy
+Select the most appropriate intervention based on failure type, customer context, previous attempts, and recovery rules.
+
+### 4. Validate Before Acting
+Apply deterministic policy gates such as retry limits, contact limits, fraud-risk checks, and communication windows.
+
+### 5. Execute & Verify
+Run the approved recovery action and track whether the transaction recovered, failed, or requires further review.
+
+### 6. Audit Everything
+Record the decision, policy checks, intervention, and outcome so every recovery attempt is explainable and traceable.
 
 ## Common Commands
 
 ```powershell
-# Reset interventions and audit records for a fresh run
-.venv\Scripts\python.exe reset_demo.py --yes
 
 # Run one complete safe recovery round
 .venv\Scripts\python.exe run_pipeline.py
@@ -176,24 +217,6 @@ $env:SUPABASE_URL=""; $env:SUPABASE_KEY=""; .venv\Scripts\python.exe recovery\de
 $env:PYTHONPATH=(Get-Location).Path; .venv\Scripts\python.exe tests\test_agent.py
 ```
 
-## Project Structure
-
-```text
-dashboard.py                 Streamlit control center
-config.py                    Environment and dry-run configuration
-db.py                        Supabase reads, writes, and audit helpers
-run_pipeline.py              End-to-end recovery round
-setup_database.py            Schema verification and CSV seeding
-generate_synthetic_data.py   Reproducible 30/120 synthetic dataset
-reset_demo.py                Reset demo interventions and audit events
-schema.sql                   Supabase tables and recovery_metrics view
-data/                       Synthetic customers and transactions
-recovery/                    Decision engine, stopping rules, retry, outcomes
-channels/                    WhatsApp and voice channel executors
-ui/                         Theme, components, and evidence-grounded assistant
-tests/                      Credential-free regression suite
-```
-
 ## Testing
 
 The project includes 56 credential-free tests. They verify rule precedence, stopping rules, call windows, contact accounting, dry-run channels, voice normalization, and dashboard theme constraints.
@@ -205,15 +228,38 @@ $env:PYTHONPATH=(Get-Location).Path
 
 `pytest` is optional; it is not required by the project.
 
-## Going Live
+## 🛡️ Safety & Guardrails
 
-Live sending is intentionally outside the demo path. Only set `DRY_RUN=false` after adding verified provider credentials and reviewing the safety rules.
+RecoverAI separates AI decisioning from execution. Every recovery action must pass deterministic safety checks before it can be executed.
 
-- WhatsApp requires Twilio credentials and an approved sending setup.
-- Voice requires Bolna or Vapi credentials.
-- Payment links require a real payment-link service.
-- A production deployment should add webhook signature verification, idempotency, authentication, rate limits, and operational monitoring.
+- Retryable failures are eligible for controlled retry within the configured attempt limit.
+- Fraud or risk-flagged payments are blocked from automated recovery.
+- Customer contacts are capped to prevent repeated outreach.
+- Voice or customer-contact actions are restricted to allowed communication hours.
+- Failed or unavailable recovery paths fall back to manual review instead of continuing blindly.
+- `DRY_RUN=true` is enabled by default, so recovery actions are simulated safely during the demo.
+- Every decision, policy check, intervention, and outcome is recorded in the audit trail.
 
-## License
+  ## 🌙 Failure Recovery / 2 AM Scenario
+  - If a recovery action fails or a provider becomes unavailable, RecoverAI stops unsafe execution, applies fallback/stopping rules, and records the event for manual review.
+  - 
+  ### Example
 
-MIT. See [LICENSE](LICENSE).
+**Payment failure → Recovery decision → Provider unavailable → Action stopped/fallback triggered → Event logged → Manual review**
+
+The goal is to ensure that a failure in the recovery system does not create a second failure for the customer or the business.
+
+ ## What It Does
+
+- Analyzes failed payments and their failure reasons
+- Selects `auto_retry`, `whatsapp`, `voice_call`, or manual review
+- Blocks fraud-risk contact and enforces a three-contact cap
+- Defers voice actions outside the 9:00-21:00 calling window
+- Simulates retry, WhatsApp, and voice actions safely by default
+- Maintains an append-only audit trail
+- Provides a Streamlit control center with queue, decisions, customers, health, and Copilot views
+
+The bundled dataset contains 30 synthetic customers and 120 synthetic failed transactions. All contact data is synthetic or masked.
+
+
+
